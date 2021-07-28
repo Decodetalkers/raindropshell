@@ -6,6 +6,6 @@
 !_TAG_PROGRAM_URL	https://ctags.io/	/official site/
 !_TAG_PROGRAM_VERSION	0.0.0	//
 ascii_to_char	/home/cht/Rust/rdsh/src/tool.rs	/^pub fn ascii_to_char(code: u8) -> char {$/;"	f
-child_process	/home/cht/Rust/rdsh/src/main.rs	/^fn child_process(command: String){$/;"	f
+child_process	/home/cht/Rust/rdsh/src/main.rs	/^fn child_process(command: String,tx: mpsc::Sender<bool>){$/;"	f
 main	/home/cht/Rust/rdsh/src/main.rs	/^fn main() {$/;"	f
 tool	/home/cht/Rust/rdsh/src/main.rs	/^mod tool;$/;"	n
