@@ -1,3 +1,8 @@
+use std::io;
+use std::sync::mpsc;
+use std::sync::mpsc::Receiver;
+use std::thread;
+
 pub fn ascii_to_char(code: u8) -> char {
     match code {
         10 => '\n',
@@ -98,4 +103,13 @@ pub fn ascii_to_char(code: u8) -> char {
         _ => '_',
     }
 }
-
+//建立一个专门监听的线程
+pub fn spawn_stdin_channel() -> Receiver<String> {
+    let (tx, rx) = mpsc::channel::<String>();
+    thread::spawn(move || loop {
+        let mut buffer = String::new();
+        io::stdin().read_line(&mut buffer).unwrap();
+        tx.send(buffer).unwrap();
+    });
+    rx
+}

@@ -1,17 +1,19 @@
 use std::{
     io::{
-        self, Read, Write
+        Read,
+        Write
     }, 
     process::{
         self,
         Command,
     }, 
     sync::mpsc,
-    thread
+    thread,
+    
 };
 mod tool;
-use tool::ascii_to_char;
-fn child_process(command: String,tx: mpsc::Sender<bool>){
+use tool::*;
+fn child_process(command: String,tx: mpsc::Sender<bool>,rv:mpsc::Receiver<String>){
     let mut child = Command::new(command.as_str())
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::piped())
@@ -27,12 +29,13 @@ fn child_process(command: String,tx: mpsc::Sender<bool>){
         .name("input".into())
         .spawn(move||{
             loop{
-                let mut input = String::new();
-                //println!("end2");
-                io::stdin()
-                    .read_line(&mut input)
-                    .expect("Failed to read line");
-                println!("buffer {}",input);
+                //let mut input = String::new();
+                let input:String = loop {
+                    match rv.try_recv() {
+                        Ok(key) => break key,
+                        Err(_) =>{},
+                    }
+                };
                 match inputstream.write_all(input.as_bytes()){
                     Ok(_)=>{},
                     Err(_)=>{
@@ -79,24 +82,38 @@ fn child_process(command: String,tx: mpsc::Sender<bool>){
             //println!("end");
             if tx.send(true).is_ok(){};
             //thread::sleep(Duration::from_millis(100));
-            io::stdout().write(b"ssss").expect("sss");
-            io::copy(&mut io::stdin(), &mut io::stdout()).expect("sss");
+            //io::stdout().write(b"ssss").expect("sss");
+            //io::copy(&mut io::stdin(), &mut io::stdout()).expect("sss");
             //if tx2.send(false).is_ok(){};
         }).expect("error");
 }
 fn main() {
+    let stdin_channel = spawn_stdin_channel();
     loop{
         let (tx,rx) = mpsc::channel();
-        let mut guess = String::new();
-
-        io::stdin()
-            .read_line(&mut guess)
-            .expect("Failed to read line");
+        let mut guess:String = loop {
+            match stdin_channel.try_recv() {
+                Ok(key) => break key,
+                Err(_) =>{},
+            }
+        };
+        //io::stdin()
+        //    .read_line(&mut guess)
+        //    .expect("Failed to read line");
         guess.pop();
-        child_process(guess.to_string(),tx);
-        if let Ok(test) = rx.recv(){
-            if test{
-                continue;
+        //println!("{}",guess);
+        let (tx2,rx2) = mpsc::channel();
+        child_process(guess.to_string(),tx,rx2);
+        loop {
+            match stdin_channel.try_recv() {
+                Ok(key) => tx2.send(key).unwrap(),
+                Err(_) =>{},
+            }
+            //用try就不会阻塞了妈的
+            if let Ok(test) = rx.try_recv(){
+                if test{
+                    break;
+                }
             }
         }
     }
