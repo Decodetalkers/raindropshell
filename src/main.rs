@@ -1,12 +1,12 @@
 use std::{
-    io::{Read, Write},
+    io::Write,
     process::{self, Command},
     sync::mpsc,
     thread,
 };
 mod tool;
 use tool::{
-    ascii_to_char,
+    //ascii_to_char,
     spawn_stdin_channel,
     Input,
 };
@@ -16,7 +16,7 @@ fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<St
     let childa = Command::new(command.as_str())
         .args(args)
         .stdin(process::Stdio::piped())
-        .stdout(process::Stdio::piped())
+    //    .stdout(process::Stdio::piped())
         .spawn();
     //.expect("error");
     let mut child = match childa {
@@ -28,7 +28,7 @@ fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<St
         }
     };
 
-    let mut stream = child.stdout.take().expect("error");
+    //let mut stream = child.stdout.take().expect("error");
     let mut inputstream = child.stdin.take().unwrap();
 
     //let (tx2,rx2):(mpsc::Sender<bool>,mpsc::Receiver<bool>) = mpsc::channel();
@@ -53,33 +53,33 @@ fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<St
         })
         .expect("error");
 
-    thread::Builder::new()
-        .name(command)
-        .spawn(move || {
-            //如果后面没有需要家的信息，首先会等进程结束
-            loop {
-                let mut buf = [0];
-                match stream.read(&mut buf) {
-                    Err(err) => {
-                        println!("{}]Err happened{}", line!(), err);
-                        break;
-                    }
-                    Ok(got) => {
-                        if got == 0 {
-                            println!("\n bye");
-                            break;
-                        } else if got == 1 {
-                            let index = ascii_to_char(buf[0]);
-                            print!("{}", index);
-                        } else {
-                            print!("error");
-                            break;
-                        }
-                    }
-                }
-            }
-        })
-        .expect("error");
+    //thread::Builder::new()
+    //    .name(command)
+    //    .spawn(move || {
+    //        //如果后面没有需要家的信息，首先会等进程结束
+    //        loop {
+    //            let mut buf = [0];
+    //            match stream.read(&mut buf) {
+    //                Err(err) => {
+    //                    println!("{}]Err happened{}", line!(), err);
+    //                    break;
+    //                }
+    //                Ok(got) => {
+    //                    if got == 0 {
+    //                        println!("\n bye");
+    //                        break;
+    //                    } else if got == 1 {
+    //                        let index = ascii_to_char(buf[0]);
+    //                        print!("{}", index);
+    //                    } else {
+    //                        print!("error");
+    //                        break;
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    })
+    //    .expect("error");
 
     thread::Builder::new()
         .name("save".into())
