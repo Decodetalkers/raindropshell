@@ -5,9 +5,16 @@ use std::{
     thread,
 };
 mod tool;
-use tool::*;
-fn child_process(command: String, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<String>) {
+use tool::{
+    ascii_to_char,
+    spawn_stdin_channel,
+    Input,
+};
+fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<String>) {
+    let command = commandin.command;
+    let args = commandin.args;
     let childa = Command::new(command.as_str())
+        .args(args)
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::piped())
         .spawn();
@@ -101,9 +108,10 @@ fn main() {
         //    .read_line(&mut guess)
         //    .expect("Failed to read line");
         guess.pop();
+        let guess2 = Input::new(guess);
         //println!("{}",guess);
         let (tx2, rx2) = mpsc::channel();
-        child_process(guess.to_string(), tx, rx2);
+        child_process(guess2, tx, rx2);
         loop {
             //用try就不会阻塞了妈的
             //如果command不成立，就break

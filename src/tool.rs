@@ -113,3 +113,22 @@ pub fn spawn_stdin_channel() -> Receiver<String> {
     });
     rx
 }
+pub struct Input {
+    pub command : String,
+    pub args : Vec<String>,
+}
+impl Input{
+    pub fn new(input:String) -> Input {
+        let pos : Vec<&str> = input.split(' ').collect();
+        let length = pos.len();
+        let command : String = pos[0].to_string();
+        let mut args: Vec<String> = vec![];
+        for item in pos.iter().take(length).skip(1){
+            args.push(item.to_string());
+        }
+        Input{
+            command,
+            args,
+        }
+    }
+}
