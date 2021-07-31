@@ -10,13 +10,18 @@ use tool::{
     spawn_stdin_channel,
     Input,
 };
-fn child_process(commandin: Input, tx: mpsc::Sender<()>, rv: mpsc::Receiver<String>,rx3:mpsc::Receiver<()>) {
+fn child_process(
+    commandin: Input,
+    tx: mpsc::Sender<()>,
+    rv: mpsc::Receiver<String>,
+    rx3: mpsc::Receiver<()>,
+) {
     let command = commandin.command;
     let args = commandin.args;
     let childa = Command::new(command.as_str())
         .args(args)
         .stdin(process::Stdio::piped())
-    //    .stdout(process::Stdio::piped())
+        //    .stdout(process::Stdio::piped())
         .spawn();
     //.expect("error");
     let mut child = match childa {
@@ -87,20 +92,19 @@ fn child_process(commandin: Input, tx: mpsc::Sender<()>, rv: mpsc::Receiver<Stri
     //drop(child);
     //println!("end");
     //if tx.send(true).is_ok() {};
-        
-       thread::Builder::new()
+
+    thread::Builder::new()
         .name("save".into())
         .spawn(move || {
             //child.wait().unwrap();
             loop {
-                if let Ok(()) = rx3.try_recv(){
+                if let Ok(()) = rx3.try_recv() {
                     println!("ss");
                     child.kill().expect("ss");
                 }
-                match child.try_wait(){
-                    Ok(Some(_))=> break,
-                    Ok(None)=> {
-                    },
+                match child.try_wait() {
+                    Ok(Some(_)) => break,
+                    Ok(None) => {}
                     Err(_) => {
                         println!("ggg");
                         println!("error");
@@ -118,9 +122,8 @@ fn child_process(commandin: Input, tx: mpsc::Sender<()>, rv: mpsc::Receiver<Stri
         .expect("error");
 }
 fn main() {
-    let (tx0, rx0) :(mpsc::Sender<()>,mpsc::Receiver<()>) = mpsc::channel();
-    ctrlc::set_handler(move || tx0.send(()).expect("couldnot send"))
-        .expect("Err Ctrl-C");
+    let (tx0, rx0): (mpsc::Sender<()>, mpsc::Receiver<()>) = mpsc::channel();
+    ctrlc::set_handler(move || tx0.send(()).expect("couldnot send")).expect("Err Ctrl-C");
 
     let stdin_channel = spawn_stdin_channel();
     loop {
@@ -128,7 +131,7 @@ fn main() {
         std::io::stdout().flush().unwrap();
         let (tx, rx) = mpsc::channel();
         if let Ok(()) = rx0.try_recv() {
-                    break;
+            break;
         }
         let mut guess: String = loop {
             if let Ok(key) = stdin_channel.try_recv() {
@@ -142,8 +145,8 @@ fn main() {
         let guess2 = Input::new(guess);
         //println!("{}",guess);
         let (tx2, rx2) = mpsc::channel();
-        let (tx3, rx3) :(mpsc::Sender<()>,mpsc::Receiver<()>) = mpsc::channel();
-        child_process(guess2, tx, rx2,rx3);
+        let (tx3, rx3): (mpsc::Sender<()>, mpsc::Receiver<()>) = mpsc::channel();
+        child_process(guess2, tx, rx2, rx3);
         loop {
             //用try就不会阻塞了妈的
             //如果command不成立，就break
@@ -157,6 +160,6 @@ fn main() {
             if let Ok(()) = rx0.try_recv() {
                 if tx3.send(()).is_ok() {}
             }
-        };
+        }
     }
 }
