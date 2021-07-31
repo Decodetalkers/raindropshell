@@ -10,7 +10,7 @@ use tool::{
     spawn_stdin_channel,
     Input,
 };
-fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<String>) {
+fn child_process(commandin: Input, tx: mpsc::Sender<()>, rv: mpsc::Receiver<String>,rx3:mpsc::Receiver<()>) {
     let command = commandin.command;
     let args = commandin.args;
     let childa = Command::new(command.as_str())
@@ -23,7 +23,7 @@ fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<St
         Ok(child) => child,
         Err(_) => {
             println!("no such command");
-            if tx.send(true).is_ok() {};
+            if tx.send(()).is_ok() {};
             return;
         }
     };
@@ -80,14 +80,36 @@ fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<St
     //        }
     //    })
     //    .expect("error");
-
-    thread::Builder::new()
+    //ctrlc::set_handler(move ||{
+    //    child.kill();
+    //}).expect("error");
+    //child.wait().unwrap();
+    //drop(child);
+    //println!("end");
+    //if tx.send(true).is_ok() {};
+        
+       thread::Builder::new()
         .name("save".into())
         .spawn(move || {
-            child.wait().unwrap();
+            //child.wait().unwrap();
+            loop {
+                if let Ok(()) = rx3.try_recv(){
+                    println!("ss");
+                    child.kill().expect("ss");
+                }
+                match child.try_wait(){
+                    Ok(Some(_))=> break,
+                    Ok(None)=> {
+                    },
+                    Err(_) => {
+                        println!("ggg");
+                        println!("error");
+                    }
+                }
+            }
             drop(child);
             //println!("end");
-            if tx.send(true).is_ok() {};
+            if tx.send(()).is_ok() {};
             //thread::sleep(Duration::from_millis(100));
             //io::stdout().write(b"ssss").expect("sss");
             //io::copy(&mut io::stdin(), &mut io::stdout()).expect("sss");
@@ -96,9 +118,18 @@ fn child_process(commandin: Input, tx: mpsc::Sender<bool>, rv: mpsc::Receiver<St
         .expect("error");
 }
 fn main() {
+    let (tx0, rx0) :(mpsc::Sender<()>,mpsc::Receiver<()>) = mpsc::channel();
+    ctrlc::set_handler(move || tx0.send(()).expect("couldnot send"))
+        .expect("Err Ctrl-C");
+
     let stdin_channel = spawn_stdin_channel();
     loop {
+        print!("~");
+        std::io::stdout().flush().unwrap();
         let (tx, rx) = mpsc::channel();
+        if let Ok(()) = rx0.try_recv() {
+                    break;
+        }
         let mut guess: String = loop {
             if let Ok(key) = stdin_channel.try_recv() {
                 break key;
@@ -111,19 +142,21 @@ fn main() {
         let guess2 = Input::new(guess);
         //println!("{}",guess);
         let (tx2, rx2) = mpsc::channel();
-        child_process(guess2, tx, rx2);
+        let (tx3, rx3) :(mpsc::Sender<()>,mpsc::Receiver<()>) = mpsc::channel();
+        child_process(guess2, tx, rx2,rx3);
         loop {
             //用try就不会阻塞了妈的
             //如果command不成立，就break
-            if let Ok(test) = rx.try_recv() {
-                if test {
-                    break;
-                }
+            if let Ok(()) = rx.try_recv() {
+                break;
             }
             //把信号传送到子进程中
             if let Ok(key) = stdin_channel.try_recv() {
                 if tx2.send(key).is_ok() {}
             }
-        }
+            if let Ok(()) = rx0.try_recv() {
+                if tx3.send(()).is_ok() {}
+            }
+        };
     }
 }
