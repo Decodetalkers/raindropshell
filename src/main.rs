@@ -99,14 +99,12 @@ fn child_process(
             //child.wait().unwrap();
             loop {
                 if let Ok(()) = rx3.try_recv() {
-                    println!("ss");
                     child.kill().expect("ss");
                 }
                 match child.try_wait() {
                     Ok(Some(_)) => break,
                     Ok(None) => {}
                     Err(_) => {
-                        println!("ggg");
                         println!("error");
                     }
                 }
@@ -130,14 +128,18 @@ fn main() {
         print!("~");
         std::io::stdout().flush().unwrap();
         let (tx, rx) = mpsc::channel();
-        if let Ok(()) = rx0.try_recv() {
-            break;
-        }
-        let mut guess: String = loop {
+
+        let (mut guess, out): (String, bool) = loop {
+            if let Ok(()) = rx0.try_recv() {
+                break (String::new(), true);
+            }
             if let Ok(key) = stdin_channel.try_recv() {
-                break key;
+                break (key, false);
             }
         };
+        if out {
+            break;
+        }
         //io::stdin()
         //    .read_line(&mut guess)
         //    .expect("Failed to read line");
